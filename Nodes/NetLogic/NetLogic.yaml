@@ -1,5 +1,9 @@
 Name: NetLogic
 Type: NetLogicCategoryFolder
 Children:
-- Name: RuntimeNetLogicPLCManager_
+- Name: RuntimeNetLogicPLCManager_Giorgio
+  Type: NetLogic
+- Name: RuntimeNetLogicPLCManager_Davide
+  Type: NetLogic
+- Name: RuntimeNetLogicPLCManager_Finale
   Type: NetLogic
