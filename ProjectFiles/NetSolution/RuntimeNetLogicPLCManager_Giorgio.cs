@@ -15,25 +15,32 @@ using FTOptix.CoreBase;
 using FTOptix.Core;
 using FTOptix.NetLogic;
 using FTOptix.CommunicationDriver;
+using FTOptix.SQLiteStore;
+using FTOptix.Store;
 #endregion
 
-public class PLCManager : BaseNetLogic
+public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
 {
     private List<string> discoveredPlcs = new List<string>();
     private List<string> plcReports = new List<string>();
     private const int pingTimeout = 500; // Timeout per ping in millisecondi
-
+    [ExportMethod]
     public override void Start()
     {
         Log.Info("PLCManager", "Starting PLC Manager...");
-        DiscoverPlcs();
-        TestPlcCommunication();
-        LogReports();
     }
-
+    [ExportMethod]
     public override void Stop()
     {
         Log.Info("PLCManager", "Stopping PLC Manager...");
+    }
+    [ExportMethod]
+    public void StartScanner()
+    {
+        Log.Info("PLCManager", "Starting scanner...");
+        DiscoverPlcs();
+        TestPlcCommunication();
+        LogReports();
     }
 
     private void DiscoverPlcs()
@@ -60,6 +67,7 @@ public class PLCManager : BaseNetLogic
                 plcReports.Add($"PLC at {plc} is reachable.");
 
                 // Leggi tutti i tag disponibili da tutti i driver
+                /*
                 var tagsByDriver = plcComm.ReadAllTagsFromAvailableDrivers();
                 foreach (var driver in tagsByDriver)
                 {
@@ -71,6 +79,7 @@ public class PLCManager : BaseNetLogic
                         plcReports.Add($"Tag {tag.BrowseName}: Value = {value.Value}");
                     }
                 }
+                */
             }
             else
             {
@@ -86,81 +95,83 @@ public class PLCManager : BaseNetLogic
             Log.Info("PLCManager", report);
         }
     }
-}
-
-public class PLCCommunication
-{
-    private string ipAddress;
-    private int pingTimeout;
-
-    public PLCCommunication(string ipAddress, int timeout = 500)
+    private class PLCCommunication
     {
-        this.ipAddress = ipAddress;
-        this.pingTimeout = timeout;
-    }
+        private string ipAddress;
+        private int pingTimeout;
 
-    public bool Ping()
-    {
-        using (var ping = new Ping())
+        public PLCCommunication(string ipAddress, int timeout = 500)
         {
-            try
-            {
-                PingReply reply = ping.Send(ipAddress, pingTimeout);
-                return reply.Status == IPStatus.Success;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Error pinging {ipAddress}: {ex.Message}");
-                return false;
-            }
+            this.ipAddress = ipAddress;
+            this.pingTimeout = timeout;
         }
-    }
 
-    public Dictionary<string, List<Tag>> ReadAllTagsFromAvailableDrivers()
-    {
-        var tagsByDriver = new Dictionary<string, List<Tag>>();
-
-        // Ottieni tutti i driver di comunicazione disponibili
-        var drivers = Project.Current.Get<CommunicationDriver>();
-
-        foreach (var driver in drivers)
+        public bool Ping()
         {
-            try
+            using (var ping = new Ping())
             {
-                // Prova a connetterti alla stazione per l'IP corrente
-                var station = driver.Get<Station>($"CommDrivers/{driver.Name}/{ipAddress}");
-
-                if (station != null)
+                try
                 {
-                    // Esegui il browsing dei tag
-                    Struct[] instances;
-                    Struct[] prototypes;
-                    station.Browse(out instances, out prototypes);
-
-                    var tags = new List<Tag>();
-                    foreach (var item in instances)
-                    {
-                        // Assicurati di aggiungere solo i tag
-                        if (item is Tag tagItem)
-                        {
-                            tags.Add(tagItem); // Aggiungi il tag all'elenco
-                        }
-                    }
-
-                    // Aggiungi i tag letti dal driver all'elenco
-                    if (tags.Count > 0)
-                    {
-                        tagsByDriver.Add(driver.Name, tags);
-                        Log.Info($"Read {tags.Count} tags from {driver.Name} at {ipAddress}");
-                    }
+                    PingReply reply = ping.Send(ipAddress, pingTimeout);
+                    return reply.Status == IPStatus.Success;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Error pinging {ipAddress}: {ex.Message}");
+                    return false;
                 }
             }
-            catch (Exception ex)
-            {
-                Log.Error($"Error reading tags from driver {driver.Name} at {ipAddress}: {ex.Message}");
-            }
         }
+        /*
+        public Dictionary<string, List<Tag>> ReadAllTagsFromAvailableDrivers()
+        {
+            var tagsByDriver = new Dictionary<string, List<Tag>>();
 
-        return tagsByDriver; // Restituisci i tag letti per driver
+            // Ottieni tutti i driver di comunicazione disponibili
+            var drivers = Project.Current.Get<CommunicationDriver>();
+
+            foreach (var driver in drivers)
+            {
+                try
+                {
+                    // Prova a connetterti alla stazione per l'IP corrente
+                    var station = driver.Get<Station>($"CommDrivers/{driver.Name}/{ipAddress}");
+
+                    if (station != null)
+                    {
+                        // Esegui il browsing dei tag
+                        Struct[] instances;
+                        Struct[] prototypes;
+                        station.Browse(out instances, out prototypes);
+
+                        var tags = new List<Tag>();
+                        foreach (var item in instances)
+                        {
+                            // Assicurati di aggiungere solo i tag
+                            if (item is Tag tagItem)
+                            {
+                                tags.Add(tagItem); // Aggiungi il tag all'elenco
+                            }
+                        }
+
+                        // Aggiungi i tag letti dal driver all'elenco
+                        if (tags.Count > 0)
+                        {
+                            tagsByDriver.Add(driver.Name, tags);
+                            Log.Info($"Read {tags.Count} tags from {driver.Name} at {ipAddress}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Error reading tags from driver {driver.Name} at {ipAddress}: {ex.Message}");
+                }
+            }
+
+            return tagsByDriver; // Restituisci i tag letti per driver
+        }
+        */
     }
+
 }
+

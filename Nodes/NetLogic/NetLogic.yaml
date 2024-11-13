@@ -1,9 +1,25 @@
 Name: NetLogic
 Type: NetLogicCategoryFolder
 Children:
-- Name: RuntimeNetLogicPLCManager_Giorgio
-  Type: NetLogic
 - Name: RuntimeNetLogicPLCManager_Davide
+  Id: g=14e20b566b4114f05ccf4d498a0552ce
   Type: NetLogic
+  Children:
+  - Class: Method
+    Name: Start
+  - Class: Method
+    Name: StartScanner
+  - Class: Method
+    Name: Stop
 - Name: RuntimeNetLogicPLCManager_Finale
   Type: NetLogic
+- Name: RuntimeNetLogicPLCManager_Giorgio
+  Id: g=eee2d23d304446de03fc4b56608534e3
+  Type: NetLogic
+  Children:
+  - Class: Method
+    Name: StartScanner
+  - Class: Method
+    Name: Stop
+  - Class: Method
+    Name: Start

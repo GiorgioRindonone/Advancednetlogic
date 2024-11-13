@@ -9,6 +9,8 @@ using FTOptix.UI;
 using FTOptix.NativeUI;
 using FTOptix.CoreBase;
 using FTOptix.Core;
+using FTOptix.SQLiteStore;
+using FTOptix.Store;
 #endregion
 
 public class RuntimeNetLogicPLCManager_Finale : BaseNetLogic
