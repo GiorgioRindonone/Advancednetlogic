@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Ports;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using UAManagedCore;
 using OpcUa = UAManagedCore.OpcUa;
@@ -24,6 +25,9 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
     private List<string> discoveredPlcs = new List<string>();
     private List<string> plcReports = new List<string>();
     private const int pingTimeout = 500; // Timeout per ping in millisecondi
+
+    private UAVariable deviceInfos;
+    private UAVariable ipValue;
     [ExportMethod]
     public override void Start()
     {
@@ -37,12 +41,30 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
     [ExportMethod]
     public void StartScanner()
     {
-        Log.Info("PLCManager", "Starting scanner...");
+        // prendi il valore della variabile deviceInfos situata in Screens/ScreenGiorgio/TextBox1/ipValue usando il remote read
+        ipValue = Project.Current.Get<UAVariable>("UI/Screens/ScreenGiorgio/TextBox1/ipValue");
+        deviceInfos = Project.Current.Get<UAVariable>("UI/Screens/ScreenGiorgio/Label1/deviceInfos");
+
+        ipValue.RemoteRead().ToString();
+
+        Log.Info("PLCManager", $"Scanning for PLCs on network...");
+        PingSingle();
         DiscoverPlcs();
         TestPlcCommunication();
         LogReports();
     }
-
+    // ping per un solo indirizzo ipValue 
+    private void PingSingle()
+    {
+        var ip = ipValue.RemoteRead();
+        Log.Info("PLCManager", $"Pinging {ip}...");
+        var plcComm = new PLCCommunication(ip, pingTimeout);
+        if (plcComm.Ping())
+        {
+            Log.Info("PLCManager", $"PLC found at {ipValue.RemoteRead().ToString()}");
+            discoveredPlcs.Add(ipValue.RemoteRead().ToString());
+        }
+    }
     private void DiscoverPlcs()
     {
         for (int i = 1; i < 255; i++)
@@ -51,7 +73,7 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
             var plcComm = new PLCCommunication(ip, pingTimeout);
             if (plcComm.Ping())
             {
-                Log.Info("PLCManager", $"PLC found at {ip}");
+                Log.Info("PLCManager", $"PLC found at {ip}, info: {plcComm.GetDeviceInfos()}");
                 discoveredPlcs.Add(ip);
             }
         }
@@ -65,7 +87,8 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
             if (plcComm.Ping())
             {
                 plcReports.Add($"PLC at {plc} is reachable.");
-
+                deviceInfos.RemoteWrite(plcComm.GetDeviceInfos());
+                Log.Info("TestPlcCommunication: ", plcComm.GetDeviceInfos());
                 // Leggi tutti i tag disponibili da tutti i driver
                 /*
                 var tagsByDriver = plcComm.ReadAllTagsFromAvailableDrivers();
@@ -97,15 +120,22 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
     }
     private class PLCCommunication
     {
+        // enum list of available drivers
+
         private string ipAddress;
         private int pingTimeout;
-
+        private string [] drivers = { "ModbusTCP", "ModbusRTU", "OPCUA" };
+        private string deviceHostName;
+        private string deviceAliases;
+        private string deviceAddresses;
+        private string deviceFullMessage;
         public PLCCommunication(string ipAddress, int timeout = 500)
         {
             this.ipAddress = ipAddress;
             this.pingTimeout = timeout;
         }
 
+        // pinga il dispositivo per verificare la connessione
         public bool Ping()
         {
             using (var ping = new Ping())
@@ -113,6 +143,7 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
                 try
                 {
                     PingReply reply = ping.Send(ipAddress, pingTimeout);
+
                     return reply.Status == IPStatus.Success;
                 }
                 catch (Exception ex)
@@ -120,6 +151,31 @@ public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
                     Log.Error($"Error pinging {ipAddress}: {ex.Message}");
                     return false;
                 }
+            }
+        }
+
+        // Ottieni informazioni sul dispositivo pingato
+        public string GetDeviceInfos()
+        {
+            if (Ping())
+            {
+                try
+                {
+                    IPHostEntry host = Dns.GetHostEntry(ipAddress);
+                    deviceHostName = host.HostName;
+                    deviceAliases = string.Join(", ", host.Aliases);
+                    deviceAddresses = string.Join(", ", host.AddressList.Select(a => a.ToString()));
+                    deviceFullMessage = $"Device at {ipAddress} is reachable. Hostname: {deviceHostName}, Aliases: {deviceAliases}, Addresses: {deviceAddresses}";
+                    return deviceFullMessage;
+                }
+                catch (Exception ex)
+                {
+                    return $"Error getting device infos for {ipAddress}: {ex.Message}";
+                }
+            }
+            else
+            {
+                return $"Device at {ipAddress} is not reachable.";
             }
         }
         /*
