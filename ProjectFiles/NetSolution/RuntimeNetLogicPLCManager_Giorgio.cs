@@ -20,6 +20,36 @@ using FTOptix.SQLiteStore;
 using FTOptix.Store;
 #endregion
 
+
+/*
+VERIFICA FATTIBILITA'
+
+Per la maggior parte dei driver:
+
+-Optix mi dice se c'è comunicazione
+-Optix mi dice se vado in timeout (esiste ma magari ho sbagliato driver)
+
+Siemens rockwell e backhoff in SIMBOLICO ti permettono di fare browsing 
+
+Tramite script
+-Ping su tutti gli IP da una certa classe in poi (da gestire il fatto che io potrei avere lo stesso IP, serve fare una scansione)
+-il top è che lui pinga più classi, se no va bene anche tutti gli IP di una sola classe.
+- BONUS: dallo script aggiungere una classe per volta diversa da quella del dispositivo e andare a pingare tutti gli indirizzi di quella classe, ogni volta poi finito il ciclo di check per quella classe, cambiare classe con quella successiva e ripetere tutto il check degli indirizzi, anche se dura un po')
+-Tramite ping capire che informazioni riesco a ottenere (se sono PLC, che tipo di PLC è ecc) 
+-Voglio generare una tabella con indirizzi ip, nome dispositivo,  brand, mac address.
+-Una volta che ho acquisito queste informazioni devo sapere che driver di comunicazione sono supportati. In automatico usare una stazione già presente  OPC o Modbus O bo per instaurare la comunicazione. 
+-Se il protocollo ci consente di fare la mappatura si lancia il browsing.
+- BONUS: poter creare una stazione a runtime e usarla per fare il browsing dei tags
+
+
+REPORT ARCHITETTURA:
+ELENCO, MARCA, IP, PROTOCOLLI
+
+REPORT DATI:
+PLC, IP PLC , TAGS TROVATE, POSSIBILITA' DI GENERARE UN PDF.
+
+*/
+
 public class RuntimeNetLogicPLCManager_Giorgio : BaseNetLogic
 {
     private List<string> discoveredPlcs = new List<string>();
